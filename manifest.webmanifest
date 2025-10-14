@@ -1,0 +1,20 @@
+{
+  "name": "Ghamlouch Jewelry Barcode Scanner",
+  "short_name": "GJ Scanner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#1C1E2B",
+  "theme_color": "#1C1E2B",
+  "icons": [
+    {
+      "src": "assets/ghamouch%20logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "assets/ghamouch%20logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
