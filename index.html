@@ -892,25 +892,23 @@
   </div>
 
 <script>
-// Password Protection
-const CORRECT_PASSWORD = '2024';
 
-function checkPassword() {
+
+
+// Replace the existing checkPassword function:
+async function checkPassword() {
   const input = document.getElementById('passwordInput').value.trim();
-  const errorMessage = document.getElementById('errorMessage');
-  const authOverlay = document.getElementById('authOverlay');
-  const mainContent = document.getElementById('mainContent');
-
-  if (input === CORRECT_PASSWORD) {
+  const result = await login(input);
+  
+  if (result.success) {
+    // Hide auth overlay, show main content
     authOverlay.style.display = 'none';
     mainContent.style.display = 'flex';
-    errorMessage.style.display = 'none';
-    sessionStorage.setItem('authenticated', 'true');
+    // Load inventory
+    await loadSheet();
   } else {
+    // Show error
     errorMessage.style.display = 'block';
-    const passwordField = document.getElementById('passwordInput');
-    passwordField.value = '';
-    passwordField.focus();
   }
 }
 
@@ -1332,17 +1330,34 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
-  // ========= SHEET CONFIG =========
-  // Uses a public JSON view via opensheet.elk.sh for your *Inventory* tab:
-  const SHEET_JSON = "https://opensheet.elk.sh/19T1bTHSBDud2pca-VwmpY3sxzODxPO6OfMxVYBCKsG8/inventory";
-  // === SELL endpoint (Apps Script Web App) ===
- const SELL_API = "https://script.google.com/macros/s/AKfycbz0mfu5WXkh8NycutJen3zGxvEWibPC5pSh920DURzQnXt-GPgp4m0ia9dXKvEX9MZt/exec";
+ // ✅ ADD THESE FUNCTIONS:
+
+async function login(password) {
+  const response = await fetch('/api/auth', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password })
+  });
+  return await response.json();
+}
+
+async function fetchInventory() {
+  const response = await fetch('/api/inventory');
+  if (!response.ok) throw new Error('Auth required');
+  return await response.json();
+}
+
+async function recordSale(saleData) {
+  const response = await fetch('/api/sales', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(saleData)
+  });
+  return await response.json();
+}
 
 
-
-
-  const SELL_TOKEN = "veridian_sales_2024"; // must match the Apps Script SECRET
-
+ 
   // ========= SHEET STATE / HELPERS =========
   let sheetRows = [];
   let skuIndex = new Map();
@@ -1604,33 +1619,15 @@ document.addEventListener('DOMContentLoaded', function () {
     renderScanHistory();
   }
 
-  async function loadSheet() {
-    const cached = readInventoryCache();
-    if (cached && !sheetRows.length) {
-      processSheetData(cached.rows);
-    }
-    try {
-      const res = await fetch(SHEET_JSON + "?t=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) {
-        throw new Error(`Inventory request failed (${res.status})`);
-      }
-      const data = await res.json();
-      processSheetData(data);
-      writeInventoryCache(data);
-      showToast('Inventory synced', 'success');
-    } catch (e) {
-      console.error("Sheet load error:", e);
-      if (cached) {
-        if (!sheetRows.length) {
-          processSheetData(cached.rows);
-        }
-        showToast('Using cached inventory data', 'info');
-      } else {
-        showError('Unable to load inventory. Check your connection and try again.');
-        showToast('Failed to load inventory data', 'error');
-      }
-    }
+ async function loadSheet() {
+  try {
+    const data = await fetchInventory();
+    processSheetData(data);
+  } catch (error) {
+    showToast('Authentication required', 'error');
+    // Redirect to login or show auth overlay
   }
+}
 
   function readScanHistory() {
     try {
