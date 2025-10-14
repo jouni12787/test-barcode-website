@@ -1,0 +1,2372 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Veridian Jewelry • Smart Barcode Scanner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- App icons / favicon (updated logo) -->
+  <link rel="icon" type="image/jpeg" href="../assets/logo-website-test.jpg">
+  <link rel="apple-touch-icon" href="../assets/logo-website-test.jpg">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2596be">
+  <script>if (sessionStorage.getItem('authenticated') !== 'true') { window.location.replace('../index.html'); }</script>
+  <style>
+    :root {
+      --pad: 18px;
+
+      /* === Your palette === */
+      --navy: #2596be;
+      --gold: #2596be;
+      --ivory: #2596be;
+      --warm-gray: #2596be;
+      --slate: #2596be;
+      --royal: #2596be;
+      --beige: #2596be;
+
+      /* === App tokens derived from palette === */
+      --bg: radial-gradient(circle at 10% 0%, rgba(37, 150, 190, 0.18) 0%, rgba(37, 150, 190, 0.08) 55%, #ffffff 100%);
+      --glass: rgba(255, 255, 255, 0.9);
+      --card-border: rgba(37, 150, 190, 0.35);
+      --accent: #2596be;
+      --accent-dark: #1b6f8c;
+      --text: #0f2f3a;
+      --muted: rgba(15, 47, 58, 0.7);
+      --shadow: 0 18px 40px -24px rgba(37, 150, 190, 0.45);
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: calc(var(--pad) * 1.2) var(--pad) calc(var(--pad) * 1.6);
+    }
+    .page {
+      width: min(1100px, 100%);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(18px, 3vw, 28px);
+    }
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .brand-logo {
+      height: 56px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 6px 16px rgba(37,150,190,0.25));
+    }
+    .hero-title {
+      margin: 0;
+      font-family: 'Playfair Display', 'Times New Roman', serif;
+      font-size: clamp(1.6rem, 3.8vw, 2.4rem);
+      letter-spacing: 0.02em;
+      color: var(--text);
+    }
+    .hero-subtitle {
+      margin: 0;
+      font-size: clamp(0.95rem, 2vw, 1.05rem);
+      color: var(--muted);
+      max-width: 520px;
+    }
+    .badge-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge-row .chip {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid var(--card-border);
+      box-shadow: var(--shadow);
+    }
+    .muted { color: var(--muted); }
+    a, .item-card-link { color: var(--royal); }
+
+    .permission-hint ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .permission-hint li {
+      margin-bottom: 4px;
+      line-height: 1.45;
+    }
+
+    .glass-card {
+      background: var(--glass);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: clamp(20px, 4vw, 32px);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+      gap: clamp(18px, 3vw, 32px);
+      align-items: start;
+    }
+    
+    .scanner-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    #preview {
+      width: 100%;
+      max-width: 560px;
+      border-radius: 22px;
+      background: #000;
+      box-shadow: 0 18px 40px -20px rgba(37, 150, 190, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      aspect-ratio: 3 / 2;
+      object-fit: cover;
+    }
+    #hud {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    select, button, input {
+      font-family: inherit;
+      border-radius: 14px;
+      border: 1px solid rgba(37, 150, 190, 0.25); /* brand tone */
+      padding: 12px 14px;
+      font-size: 0.98rem;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      transition: transform 120ms ease, box-shadow 200ms ease, border-color 160ms ease;
+    }
+    select:focus, button:focus, input:focus {
+      outline: none;
+      border-color: var(--royal);
+      box-shadow: 0 0 0 3px rgba(37, 150, 190, 0.25);
+    }
+    button {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 14px 32px -18px rgba(37, 150, 190, 0.45);
+    }
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.65;
+      background: rgba(37, 150, 190, 0.35);
+      box-shadow: none;
+    }
+    button:not(:disabled):hover { transform: translateY(-1px); }
+
+    #result {
+      font-size: 1.05rem;
+      min-height: 1.2em;
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+    }
+    #hint { color: var(--muted); font-size: 0.95rem; }
+
+    #manualForm { margin-top: 8px; }
+    #manualEntry {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    #manualEntry label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      font-family: 'Playfair Display', serif;
+    }
+    #manualEntry input {
+      width: 160px;
+    }
+
+    #goldPriceForm {
+      margin-top: 12px;
+      display: grid;
+      gap: 6px;
+    }
+    #goldPriceEntry {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    #goldPriceEntry label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      font-family: 'Playfair Display', serif;
+    }
+    #goldPriceEntry input {
+      width: 160px;
+    }
+    #goldPriceStatus {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    #goldPriceClear {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(37, 150, 190, 0.25);
+      color: var(--royal);
+      box-shadow: none;
+      font-weight: 500;
+    }
+
+    .gold-price-suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .gold-price-suggestions span {
+      font-weight: 500;
+    }
+
+    .gold-price-suggestions button {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(37, 150, 190, 0.25);
+      color: var(--accent-dark);
+      box-shadow: none;
+      padding: 8px 12px;
+      font-size: 0.88rem;
+    }
+
+    .gold-price-suggestions button:disabled {
+      opacity: 0.6;
+    }
+
+    .hardware-card {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.75);
+      box-shadow: 0 22px 40px -24px rgba(37, 150, 190, 0.3);
+    }
+    .hardware-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hardware-header h3 {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.2rem;
+      letter-spacing: 0.02em;
+    }
+    .hardware-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .hardware-toggle input {
+      margin: 0;
+      width: auto;
+    }
+    .hardware-input {
+      display: grid;
+      gap: 8px;
+    }
+    .hardware-input label {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    #hardwareField {
+      font-size: 1.05rem;
+      letter-spacing: 0.04em;
+    }
+    #hardwareClear {
+      width: fit-content;
+    }
+    #hardwareStatus {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .hardware-log {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .hardware-log li {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(37, 150, 190, 0.18);
+      background: rgba(37, 150, 190, 0.08);
+      font-size: 0.95rem;
+    }
+    .hardware-log code {
+      font-family: 'Inter', monospace;
+      font-weight: 600;
+      color: var(--accent-dark);
+      background: rgba(255, 255, 255, 0.6);
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+    .hardware-log time {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border: 1px solid var(--card-border);
+      border-radius: 999px;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      color: var(--slate);
+      background: rgba(255, 255, 255, 0.65);
+    }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+    }
+
+    footer {
+      grid-column: 1 / -1;
+      margin-top: clamp(20px, 4vw, 38px);
+      color: var(--muted);
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .ok { color: #1a8f55; }
+    .err { color: #d84a63; }
+
+    #result.flash { animation: flash 420ms ease-out; }
+    @keyframes flash { from { background: rgba(255, 244, 164, 0.9); } to { background: rgba(255, 255, 255, 0.72); } }
+
+    .results-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 100%;
+    }
+    .search-container {
+      display: grid;
+      gap: 10px;
+    }
+    .search-container input {
+      width: 100%;
+    }
+    .search-container label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .category-browser {
+      display: grid;
+      gap: 10px;
+    }
+    .category-browser select {
+      width: 100%;
+    }
+    .category-hint {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .category-results-title {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--accent-dark);
+    }
+    .search-results {
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.78);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      display: grid;
+      gap: 8px;
+    }
+    .search-results[hidden] {
+      display: none;
+    }
+    .search-results button.search-result {
+      background: rgba(37, 150, 190, 0.08);
+      border: 1px solid rgba(37, 150, 190, 0.18);
+      color: var(--accent-dark);
+      font-weight: 500;
+      display: grid;
+      gap: 2px;
+      align-items: flex-start;
+      text-align: left;
+      padding: 10px 12px;
+      box-shadow: none;
+    }
+    .search-results button.search-result:hover {
+      transform: translateY(-1px);
+    }
+    .search-result-title {
+      font-size: 0.98rem;
+    }
+    .search-result-meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .search-empty {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+    .results-panel h2 {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.3rem, 2.6vw, 1.8rem);
+    }
+    .results-placeholder {
+      font-size: 1rem;
+      color: var(--muted);
+    }
+    #itemCard {
+      display: none;
+      padding: clamp(18px, 3vw, 26px);
+      border-radius: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.55);
+      background: rgba(255, 255, 255, 0.82);
+      box-shadow: 0 26px 48px -24px rgba(37, 150, 190, 0.4);
+      gap: clamp(16px, 2.6vw, 30px);
+    }
+    #itemCard h3 {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      letter-spacing: 0.015em;
+      font-size: clamp(1.6rem, 3vw, 2.2rem);
+      line-height: 1.2;
+    }
+    #itemCard img {
+      width: min(100%, 420px);
+      height: auto;
+      border-radius: 20px;
+      box-shadow: 0 26px 48px -24px rgba(37, 150, 190, 0.55);
+      margin: 0 auto;
+      object-fit: contain;
+      display: block;
+    }
+    .item-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: clamp(18px, 4vw, 42px);
+      align-items: start;
+    }
+    .item-card-media {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+    .item-card-media iframe {
+      border-radius: 20px;
+      box-shadow: 0 26px 48px -24px rgba(37, 150, 190, 0.55);
+      border: 0;
+      width: min(100%, 420px);
+      min-height: 260px;
+    }
+    .item-card-copy {
+      font-size: clamp(1.05rem, 2vw, 1.18rem);
+      line-height: 1.65;
+    }
+    .item-card-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      background: rgba(37, 150, 190, 0.12);
+      border: 1px solid rgba(37, 150, 190, 0.35);
+      color: #fff;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      margin-bottom: 14px;
+    }
+    .item-card-meta {
+      display: grid;
+      gap: 12px;
+    }
+    .item-card-meta strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+    .item-card-description {
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 18px;
+      padding: 14px 18px;
+      line-height: 1.7;
+    }
+    .item-card-price {
+      margin-top: 4px;
+      padding: 16px 18px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(37,150,190,0.14), rgba(27,111,140,0.18));
+      border: 1px solid rgba(37,150,190,0.28);
+      box-shadow: 0 18px 32px -24px rgba(37,150,190,0.35);
+    }
+    .item-card-price strong {
+      font-size: clamp(1.15rem, 2.2vw, 1.35rem);
+    }
+    .item-card-price .muted {
+      margin-top: 6px;
+      font-size: 0.95rem;
+    }
+    .history-card {
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background: rgba(255, 255, 255, 0.75);
+      box-shadow: 0 22px 40px -24px rgba(37, 150, 190, 0.3);
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+    .history-card[hidden] {
+      display: none;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .history-header h3 {
+      margin: 0;
+      font-family: 'Playfair Display', serif;
+      font-size: 1.05rem;
+    }
+    #clearHistoryBtn {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(37, 150, 190, 0.25);
+      color: var(--royal);
+      box-shadow: none;
+      font-weight: 500;
+    }
+    #clearHistoryBtn:hover {
+      transform: translateY(-1px);
+    }
+    .history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+    }
+    .history-item {
+      background: rgba(37, 150, 190, 0.08);
+      border: 1px solid rgba(37, 150, 190, 0.18);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: grid;
+      gap: 4px;
+      text-align: left;
+      color: var(--accent-dark);
+      font-weight: 500;
+      box-shadow: none;
+    }
+    .history-item:hover {
+      transform: translateY(-1px);
+    }
+    .history-item-primary {
+      font-size: 0.96rem;
+    }
+    .history-item-meta {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      display: grid;
+      gap: 10px;
+      z-index: 1000;
+    }
+    .toast {
+      min-width: 220px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #fff;
+      font-weight: 500;
+      box-shadow: var(--shadow);
+      transform: translateX(120%);
+      transition: transform 0.3s ease;
+    }
+    .toast.visible {
+      transform: translateX(0);
+    }
+    .toast-info { background: var(--royal); }
+    .toast-success { background: #1a8f55; }
+    .toast-error { background: #d84a63; }
+    .item-card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      font-weight: 600;
+      color: var(--royal);
+      text-decoration: none;
+    }
+    .item-card-link::after {
+      content: '↗';
+      font-size: 0.85em;
+    }
+    @media (max-width: 720px) {
+      #itemCard {
+        text-align: center;
+      }
+      .item-card-copy {
+        font-size: 1rem;
+      }
+      .item-card-price {
+        text-align: left;
+      }
+      .toast-container {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (max-width: 960px) {
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
+      .results-panel {
+        order: 2;
+      }
+    }
+
+    @media (max-width: 720px) {
+      body { padding-top: 60px; }
+      header { text-align: center; align-items: center; }
+      .brand-logo { height: 46px; }
+      .badge-row { justify-content: center; }
+      footer { text-align: center; align-items: center; }
+    }
+  </style>
+
+  <!-- ZXing UMD build (fallback engine) -->
+  <script id="zxing-script" src="https://unpkg.com/@zxing/browser@latest"></script>
+</head>
+<body>
+  <!-- Authenticated application -->
+  <div class="page" id="mainContent">
+    <header>
+      <img src="../assets/logo-website-test.jpg" alt="Test Barcode Website logo" class="brand-logo" />
+      <div class="badge-row">
+        <span class="chip">Veridian Jewelry</span>
+      </div>
+      <h1 class="hero-title">Instant barcode console</h1>
+      <p class="hero-subtitle">Scan a piece to pull up its story, photos, and live valuation without scrolling.</p>
+      <div id="support" class="muted">Initializing…</div>
+    </header>
+
+    <div class="content-grid">
+      <section class="glass-card results-panel" aria-label="Item details">
+        <h2>Item details</h2>
+        <div class="search-container">
+          <label class="sr-only" for="searchInput">Search inventory</label>
+          <input
+            type="search"
+            id="searchInput"
+            name="search"
+            placeholder="Search items by name, SKU, or description…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <div id="searchResults" class="search-results" hidden aria-live="polite"></div>
+        </div>
+        <div id="categorySection" class="category-browser" hidden>
+          <label for="categorySelect">Browse by category</label>
+          <select id="categorySelect" name="category" disabled>
+            <option value="">Loading categories…</option>
+          </select>
+          <p id="categoryHint" class="category-hint">Select a category to view all matching pieces.</p>
+          <div id="categoryResults" class="search-results category-results" hidden aria-live="polite"></div>
+        </div>
+        <div id="itemPlaceholder" class="results-placeholder">Scan or enter a SKU to see the item information here.</div>
+        <div id="itemCard" tabindex="-1"></div>
+        <div id="historyCard" class="history-card" hidden>
+          <div class="history-header">
+            <h3>Recent scans</h3>
+            <button type="button" id="clearHistoryBtn">Clear</button>
+          </div>
+          <ul id="scanHistoryList" class="history-list"></ul>
+        </div>
+      </section>
+
+      <section class="glass-card scanner-panel" aria-label="Live barcode scanner">
+      <video id="preview" playsinline muted></video>
+
+      <div id="hud" aria-label="Camera controls">
+        <select id="cameraSelect" aria-label="Camera" disabled></select>
+        <button id="startBtn" disabled>Start</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <button id="switchBtn" disabled>Switch</button>
+        <button id="torchBtn" disabled>Toggle torch</button>
+      </div>
+
+      <div>
+        <div id="result">No barcode yet…</div>
+        <div id="hint">Tip: Serve over HTTPS. On iPhone, allow camera; hold 15–25 cm away; keep the code flat; use Torch.</div>
+      </div>
+
+      <form id="manualForm" aria-label="Manual barcode entry">
+        <div id="manualEntry">
+          <label for="manualInput">Manual entry:</label>
+          <input
+            type="number"
+            id="manualInput"
+            name="manualInput"
+            min="30001"
+            max="39999"
+            inputmode="numeric"
+            placeholder="30001"
+            required
+          />
+          <button type="submit">Lookup</button>
+        </div>
+      </form>
+
+      <form id="goldPriceForm" aria-label="Gold price override">
+        <div id="goldPriceEntry">
+          <label for="goldPriceInput">Gold price override:</label>
+          <input
+            type="number"
+            id="goldPriceInput"
+            name="goldPriceInput"
+            min="0"
+            step="0.01"
+            inputmode="decimal"
+            placeholder="2300"
+          />
+          <button type="submit">Apply</button>
+          <button type="button" id="goldPriceClear">Use live price</button>
+        </div>
+        <div id="goldPriceStatus" class="muted">Using live price…</div>
+        <div class="gold-price-suggestions" role="group" aria-label="Quick gold price suggestions">
+          <span>Quick add:</span>
+          <button type="button" data-gold-suggestion="30">Live + 30</button>
+          <button type="button" data-gold-suggestion="50">Live + 50</button>
+          <button type="button" data-gold-suggestion="70">Live + 70</button>
+          <button type="button" data-gold-suggestion="100">Live + 100</button>
+        </div>
+      </form>
+
+      <div class="hardware-card" aria-label="Bluetooth scanner capture">
+        <div class="hardware-header">
+          <h3>Bluetooth scanner capture</h3>
+          <label class="hardware-toggle">
+            <input type="checkbox" id="hardwareToggle" checked />
+            Enable capture
+          </label>
+        </div>
+        <p class="muted" style="margin: 0;">
+          Pair your handheld laser scanner with this device. Most scanners behave like a keyboard: keep the capture field focused
+          and each trigger will type the barcode followed by Enter. The app will look up the item instantly.
+        </p>
+        <div class="hardware-input">
+          <label for="hardwareField">Scanner input field</label>
+          <input
+            id="hardwareField"
+            type="text"
+            inputmode="none"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="Ready to scan…"
+            aria-describedby="hardwareStatus"
+          />
+          <button type="button" id="hardwareClear">Clear history</button>
+        </div>
+        <div id="hardwareStatus">Awaiting scan…</div>
+        <ul id="hardwareLog" class="hardware-log" aria-live="polite" aria-label="Recent scans"></ul>
+      </div>
+      </section>
+    </div>
+
+    <footer>
+      <div class="badge-row">
+        <span class="chip" id="engineChip">Engine: —</span>
+        <span class="chip">HTTPS required</span>
+        <span class="chip">iOS & Android</span>
+        <span class="chip">Code128, EAN/UPC, Code39, ITF, QR</span>
+      </div>
+      <div class="muted">Need help staging a private showing? Contact our concierge team at <strong>ajouni178@gmail.com</strong>.</div>
+    </footer>
+  </div>
+
+<script>
+
+
+
+(function () {
+  const video = document.getElementById('preview');
+  const cameraSelect = document.getElementById('cameraSelect');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const switchBtn = document.getElementById('switchBtn');
+  const torchBtn = document.getElementById('torchBtn');
+  const resultEl = document.getElementById('result');
+  const supportEl = document.getElementById('support');
+  const engineChip = document.getElementById('engineChip');
+  const itemCard = document.getElementById('itemCard');
+  const itemPlaceholder = document.getElementById('itemPlaceholder');
+  const manualForm = document.getElementById('manualForm');
+  const manualInput = document.getElementById('manualInput');
+  const goldPriceForm = document.getElementById('goldPriceForm');
+  const goldPriceInput = document.getElementById('goldPriceInput');
+  const goldPriceClear = document.getElementById('goldPriceClear');
+  const goldPriceStatus = document.getElementById('goldPriceStatus');
+  const goldSuggestionButtons = Array.from(document.querySelectorAll('[data-gold-suggestion]'));
+  const searchInput = document.getElementById('searchInput');
+  const searchResultsEl = document.getElementById('searchResults');
+  const categorySection = document.getElementById('categorySection');
+  const categorySelect = document.getElementById('categorySelect');
+  const categoryHint = document.getElementById('categoryHint');
+  const categoryResultsEl = document.getElementById('categoryResults');
+  const historyCard = document.getElementById('historyCard');
+  const historyList = document.getElementById('scanHistoryList');
+  const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+  const hardwareToggle = document.getElementById('hardwareToggle');
+  const hardwareField = document.getElementById('hardwareField');
+  const hardwareStatus = document.getElementById('hardwareStatus');
+  const hardwareLog = document.getElementById('hardwareLog');
+  const hardwareClear = document.getElementById('hardwareClear');
+  const hardwareCard = document.querySelector('.hardware-card');
+
+  const HARDWARE_HISTORY_LIMIT = 8;
+  const HARDWARE_AUTO_COMMIT_MS = 160;
+  const SCAN_HISTORY_KEY = 'scan_history_v1';
+  const MAX_HISTORY = 50;
+  const HISTORY_DISPLAY_LIMIT = 10;
+  const CACHE_KEY = 'inventory_cache_v1';
+  const CACHE_TTL = 5 * 60 * 1000;
+  const TOAST_DURATION = 4000;
+  const CATEGORY_COLUMN_CANDIDATES = [
+    'category',
+    'type',
+    'collection',
+    'group',
+    'line',
+    'segment',
+    'الصنف',
+    'الفئة',
+    'نوع',
+    'name'
+  ];
+
+  function getToastContainer() {
+    let container = document.querySelector('.toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'toast-container';
+      document.body.appendChild(container);
+    }
+    return container;
+  }
+
+  function showToast(message, type = 'info') {
+    try {
+      const container = getToastContainer();
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type}`;
+      toast.textContent = message;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          toast.classList.add('visible');
+        });
+      });
+      setTimeout(() => {
+        toast.classList.remove('visible');
+        setTimeout(() => {
+          toast.remove();
+          if (!container.childElementCount) {
+            container.remove();
+          }
+        }, 300);
+      }, TOAST_DURATION);
+    } catch (err) {
+      console.warn('Toast rendering failed:', err);
+    }
+  }
+
+  function sanitizeInput(input) {
+    const div = document.createElement('div');
+    div.textContent = String(input ?? '');
+    return div.innerHTML;
+  }
+
+  function validateSKU(sku) {
+    const skuStr = String(sku ?? '').trim();
+    if (!/^\d{5}$/.test(skuStr)) {
+      throw new Error('SKU must be 5 digits');
+    }
+    const num = Number.parseInt(skuStr, 10);
+    if (num < 30001 || num > 39999) {
+      throw new Error('SKU must be between 30001 and 39999');
+    }
+    return skuStr;
+  }
+
+  function debounce(func, wait = 200) {
+    let timeout;
+    return function debounced(...args) {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+  }
+  let hardwareEnabled = hardwareToggle ? hardwareToggle.checked : false;
+  let hardwareKeyBuffer = '';
+  let hardwareBufferTimer = null;
+
+  function updateHardwareStatus(message) {
+    if (hardwareStatus) hardwareStatus.textContent = message;
+  }
+
+  function clearHardwareLog() {
+    if (!hardwareLog) return;
+    while (hardwareLog.firstChild) hardwareLog.removeChild(hardwareLog.firstChild);
+  }
+
+  function appendHardwareLog(value) {
+    if (!hardwareLog) return;
+    const entry = document.createElement('li');
+    const code = document.createElement('code');
+    code.textContent = value;
+    const time = document.createElement('time');
+    const now = new Date();
+    time.dateTime = now.toISOString();
+    time.textContent = now.toLocaleTimeString();
+    entry.appendChild(code);
+    entry.appendChild(time);
+    hardwareLog.prepend(entry);
+    while (hardwareLog.children.length > HARDWARE_HISTORY_LIMIT) {
+      hardwareLog.removeChild(hardwareLog.lastChild);
+    }
+  }
+
+  function commitHardwareScan(rawValue) {
+    const normalized = String(rawValue ?? '').trim();
+    if (!normalized) {
+      updateHardwareStatus(hardwareEnabled ? 'Awaiting scan…' : 'Capture paused');
+      return;
+    }
+    appendHardwareLog(normalized);
+    updateHardwareStatus(`Last scan: ${normalized}`);
+    if (hardwareField) {
+      hardwareField.value = '';
+    }
+    lastValue = null;
+    handleDetected(normalized, 'bluetooth');
+    if (hardwareEnabled) {
+      hardwareField?.focus();
+    }
+  }
+
+  hardwareToggle?.addEventListener('change', () => {
+    hardwareEnabled = hardwareToggle.checked;
+    hardwareKeyBuffer = '';
+    if (hardwareBufferTimer) {
+      clearTimeout(hardwareBufferTimer);
+      hardwareBufferTimer = null;
+    }
+    if (hardwareField) {
+      hardwareField.disabled = !hardwareEnabled;
+      if (hardwareEnabled) {
+        hardwareField.focus();
+        hardwareField.select?.();
+      }
+    }
+    updateHardwareStatus(hardwareEnabled ? 'Awaiting scan…' : 'Capture paused');
+  });
+
+  hardwareField?.addEventListener('keydown', (event) => {
+    if (!hardwareEnabled) return;
+    if (event.key === 'Enter' || event.key === 'Tab') {
+      event.preventDefault();
+      commitHardwareScan(hardwareField.value);
+    } else if (event.key === 'Escape') {
+      hardwareField.value = '';
+      updateHardwareStatus('Awaiting scan…');
+    }
+  });
+
+  hardwareField?.addEventListener('input', () => {
+    if (!hardwareEnabled) return;
+    if (hardwareField.value) {
+      updateHardwareStatus(`Typing: ${hardwareField.value}`);
+    } else {
+      updateHardwareStatus('Awaiting scan…');
+    }
+  });
+
+  hardwareField?.addEventListener('focus', () => {
+    if (!hardwareEnabled) return;
+    if (!hardwareField.value) updateHardwareStatus('Ready for scanner…');
+  });
+
+  hardwareCard?.addEventListener('click', () => {
+    if (!hardwareEnabled) return;
+    hardwareField?.focus();
+  });
+
+  hardwareClear?.addEventListener('click', () => {
+    clearHardwareLog();
+    if (hardwareField) hardwareField.value = '';
+    hardwareKeyBuffer = '';
+    if (hardwareBufferTimer) {
+      clearTimeout(hardwareBufferTimer);
+      hardwareBufferTimer = null;
+    }
+    updateHardwareStatus(hardwareEnabled ? 'Awaiting scan…' : 'Capture paused');
+    hardwareField?.focus();
+  });
+
+  function flushHardwareBuffer() {
+    if (!hardwareKeyBuffer) return;
+    const value = hardwareKeyBuffer;
+    hardwareKeyBuffer = '';
+    if (hardwareBufferTimer) {
+      clearTimeout(hardwareBufferTimer);
+      hardwareBufferTimer = null;
+    }
+    commitHardwareScan(value);
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (!hardwareEnabled) return;
+    if (event.target === hardwareField) return;
+    const active = document.activeElement;
+    if (active && active !== hardwareField) {
+      const tag = active.tagName?.toLowerCase?.();
+      if (tag === 'input' || tag === 'textarea' || active.isContentEditable) {
+        return;
+      }
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      if (hardwareKeyBuffer) {
+        flushHardwareBuffer();
+      } else if (hardwareField && hardwareField.value) {
+        commitHardwareScan(hardwareField.value);
+      }
+      return;
+    }
+
+    if (event.key.length === 1) {
+      hardwareKeyBuffer += event.key;
+      if (hardwareField) {
+        hardwareField.value += event.key;
+        const pos = hardwareField.value.length;
+        hardwareField.setSelectionRange?.(pos, pos);
+      }
+      updateHardwareStatus(`Typing: ${hardwareKeyBuffer}`);
+      if (hardwareBufferTimer) clearTimeout(hardwareBufferTimer);
+      hardwareBufferTimer = setTimeout(() => {
+        flushHardwareBuffer();
+      }, HARDWARE_AUTO_COMMIT_MS);
+      event.preventDefault();
+      return;
+    }
+
+    if (event.key === 'Escape') {
+      hardwareKeyBuffer = '';
+      if (hardwareBufferTimer) {
+        clearTimeout(hardwareBufferTimer);
+        hardwareBufferTimer = null;
+      }
+      updateHardwareStatus('Awaiting scan…');
+      return;
+    }
+  }, true);
+
+  if (hardwareField) {
+    hardwareField.disabled = !hardwareEnabled;
+    if (hardwareEnabled) {
+      setTimeout(() => hardwareField.focus(), 300);
+    }
+  }
+
+  // ======== GOLD PRICE CONFIG/STATE ========
+  const GOLD_API = "https://api.gold-api.com/price/XAU";
+  const PREMIUM = 30;
+  const OUNCE_GRAMS = 32;
+  let goldPrice = null;
+  let goldUpdatedAt = null;
+  let manualGoldPrice = null;
+  let manualGoldUpdatedAt = null;
+  let lastRenderedItem = null;
+
+  function isManualGoldActive() {
+    return manualGoldPrice !== null && Number.isFinite(manualGoldPrice);
+  }
+
+  function getActiveGoldPrice() {
+    if (isManualGoldActive()) {
+      return manualGoldPrice;
+    }
+    return goldPrice;
+  }
+
+  function getGoldTimestampLabel() {
+    if (isManualGoldActive()) {
+      return manualGoldUpdatedAt ? `Set: ${manualGoldUpdatedAt}` : "";
+    }
+    return goldUpdatedAt ? `Updated: ${goldUpdatedAt}` : "";
+  }
+
+  function updateGoldPriceStatus() {
+    if (!goldPriceStatus) return;
+    if (isManualGoldActive()) {
+      const parts = [`Using manual price ${manualGoldPrice.toFixed(2)}`];
+      if (manualGoldUpdatedAt) parts.push(`set ${manualGoldUpdatedAt}`);
+      goldPriceStatus.textContent = parts.join(' • ');
+    } else if (goldPrice && Number.isFinite(goldPrice)) {
+      const parts = [`Using live price ${goldPrice.toFixed(2)}`];
+      if (goldUpdatedAt) parts.push(`updated ${goldUpdatedAt}`);
+      goldPriceStatus.textContent = parts.join(' • ');
+    } else {
+      goldPriceStatus.textContent = 'Waiting for live price…';
+    }
+  }
+
+  function setManualGoldPrice(value, { toastMessage = 'Manual gold price applied.', toastType = 'success' } = {}) {
+    manualGoldPrice = value;
+    manualGoldUpdatedAt = new Date().toLocaleString();
+    updateGoldPriceStatus();
+    if (toastMessage) {
+      showToast(toastMessage, toastType);
+    }
+    if (lastRenderedItem) {
+      renderItem(lastRenderedItem);
+    }
+  }
+
+  async function fetchGoldPrice() {
+    try {
+      const res = await fetch(GOLD_API, { cache: "no-store" });
+      const data = await res.json();
+      goldPrice = Number(data.price);
+      goldUpdatedAt = data.updatedAtReadable || data.updatedAt || "";
+      console.log("Gold price loaded:", goldPrice, goldUpdatedAt);
+      updateGoldPriceStatus();
+      if (!isManualGoldActive() && lastRenderedItem) {
+        renderItem(lastRenderedItem);
+      }
+    } catch (e) {
+      console.warn("Gold price fetch failed:", e);
+      goldPrice = null;
+      updateGoldPriceStatus();
+      if (!isManualGoldActive() && lastRenderedItem) {
+        renderItem(lastRenderedItem);
+      }
+    }
+  }
+  updateGoldPriceStatus();
+  fetchGoldPrice();
+  setInterval(fetchGoldPrice, 5 * 60 * 1000);
+
+  function computeItemPrice(weightStr, karatStr, feesStr) {
+    const w = Number(String(weightStr ?? "").replace(",", ".")) || 0;
+    const fees = Number(feesStr ?? 0) || 0;
+    const k = parseInt(String(karatStr ?? "").replace(/[^\d]/g, ""), 10) || 0;
+
+    const basePrice = getActiveGoldPrice();
+    if (!basePrice || !Number.isFinite(basePrice) || !w || !k) return null;
+
+    let purity;
+    if (k === 18) purity = 750 / 995;
+    else if (k === 21) purity = 875 / 995;
+    else purity = (k / 24);
+
+    const effectivePremium = isManualGoldActive() ? 0 : PREMIUM;
+    const perGram = ((basePrice + effectivePremium) * OUNCE_GRAMS * purity) / 1000 + fees;
+    const total = perGram * w;
+
+    return {
+      perGram,
+      total,
+      purity
+    };
+  }
+
+async function login(password) {
+  try {
+    console.log('Sending login request...');
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    });
+
+    const result = await response.json();
+    console.log('Login response:', result);
+    return result;
+  } catch (error) {
+    console.error('Login fetch error:', error);
+    return { success: false, error: 'Network error' };
+  }
+}
+
+async function fetchInventory() {
+  try {
+    console.log('Fetching inventory...');
+    const response = await fetch('/api/inventory');
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Inventory data received');
+    return data;
+  } catch (error) {
+    console.error('Inventory fetch error:', error);
+    throw error;
+  }
+}
+
+async function recordSale(saleData) {
+  const response = await fetch('/api/sales', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(saleData)
+  });
+  return await response.json();
+}
+
+
+ 
+  // ========= SHEET STATE / HELPERS =========
+  let sheetRows = [];
+  let skuIndex = new Map();
+  let skuKeyName = "sku";
+  let categoryKeyName = null;
+
+  function normalizeRowKeys(row) {
+    const out = {};
+    for (const k of Object.keys(row)) {
+      out[k.toLowerCase().trim()] = row[k];
+    }
+    return out;
+  }
+  function normalizeSku(value = "") {
+    return String(value ?? "")
+      .replace(/\u0660/g, "0").replace(/\u0661/g, "1").replace(/\u0662/g, "2")
+      .replace(/\u0663/g, "3").replace(/\u0664/g, "4").replace(/\u0665/g, "5")
+      .replace(/\u0666/g, "6").replace(/\u0667/g, "7").replace(/\u0668/g, "8")
+      .replace(/\u0669/g, "9")
+      .replace(/[^\w]/g, "")
+      .toLowerCase();
+  }
+
+  function normalizeCategoryValue(value = "") {
+    return String(value ?? "").trim().toLowerCase();
+  }
+
+  function detectCategoryKey(rows = []) {
+    if (!rows.length) return null;
+    const keys = new Set();
+    for (const row of rows) {
+      for (const key of Object.keys(row)) {
+        if (!key) continue;
+        keys.add(key.trim().toLowerCase());
+      }
+    }
+    for (const candidate of CATEGORY_COLUMN_CANDIDATES) {
+      if (keys.has(candidate)) {
+        return candidate;
+      }
+    }
+    return null;
+  }
+
+  function resetCategoryResults() {
+    if (categoryResultsEl) {
+      categoryResultsEl.hidden = true;
+      categoryResultsEl.innerHTML = '';
+    }
+    if (categoryHint) {
+      categoryHint.hidden = false;
+    }
+  }
+
+  function renderCategoryItems(rows, categoryLabel) {
+    if (!categoryResultsEl) return;
+    categoryResultsEl.innerHTML = '';
+
+    const heading = document.createElement('div');
+    heading.className = 'category-results-title';
+    const count = rows.length;
+    heading.textContent = `${categoryLabel} • ${count} item${count === 1 ? '' : 's'}`;
+    categoryResultsEl.appendChild(heading);
+
+    if (!rows.length) {
+      const empty = document.createElement('p');
+      empty.className = 'search-empty';
+      empty.textContent = 'No pieces in this category yet.';
+      categoryResultsEl.appendChild(empty);
+    } else {
+      const normalizedCategory = normalizeCategoryValue(categoryLabel);
+      rows.forEach(row => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'search-result';
+
+        const skuValue = row[skuKeyName] ?? row['sku'] ?? '';
+        const rowName = row['name'] ?? '';
+        const rowCategory = categoryKeyName ? String(row[categoryKeyName] ?? '') : '';
+        const description = row['description'] ?? '';
+        const weight = row['weight'] ?? '';
+        const karat = row['karat'] ?? row['carat'] ?? '';
+
+        const rowCategoryNormalized = normalizeCategoryValue(rowCategory);
+        const rowNameNormalized = normalizeCategoryValue(rowName);
+        const titleText = (rowCategoryNormalized === normalizedCategory && rowNameNormalized === normalizedCategory && description)
+          ? description
+          : (rowName || description || skuValue || 'Unnamed item');
+
+        const title = document.createElement('span');
+        title.className = 'search-result-title';
+        title.textContent = titleText;
+        button.appendChild(title);
+
+        const metaParts = [];
+        if (skuValue) metaParts.push(skuValue);
+        if (weight) metaParts.push(`${weight} g`);
+        if (karat) metaParts.push(String(karat));
+        if (description && titleText !== description) metaParts.push(description);
+
+        if (metaParts.length) {
+          const meta = document.createElement('span');
+          meta.className = 'search-result-meta';
+          meta.textContent = metaParts.join(' • ');
+          button.appendChild(meta);
+        }
+
+        button.addEventListener('click', () => {
+          renderItem(row);
+          addToScanHistory(skuValue, rowName || skuValue || categoryLabel);
+        });
+
+        categoryResultsEl.appendChild(button);
+      });
+    }
+
+    categoryResultsEl.hidden = false;
+    if (categoryHint) {
+      categoryHint.hidden = true;
+    }
+  }
+
+  function populateCategoryOptions() {
+    if (!categorySection || !categorySelect) return;
+    const previousValue = categorySelect.value;
+    resetCategoryResults();
+    categorySelect.innerHTML = '';
+    categorySelect.disabled = true;
+    categoryKeyName = null;
+
+    if (!sheetRows.length) {
+      categorySection.hidden = true;
+      return;
+    }
+
+    categoryKeyName = detectCategoryKey(sheetRows);
+
+    if (!categoryKeyName) {
+      categorySection.hidden = true;
+      return;
+    }
+
+    const unique = new Map();
+    for (const row of sheetRows) {
+      const raw = row[categoryKeyName];
+      const label = String(raw ?? '').trim();
+      if (!label) continue;
+      const normalized = normalizeCategoryValue(label);
+      if (!unique.has(normalized)) {
+        unique.set(normalized, label);
+      }
+    }
+
+    if (!unique.size) {
+      categorySection.hidden = true;
+      return;
+    }
+
+    categorySection.hidden = false;
+
+    const optionAll = document.createElement('option');
+    optionAll.value = '';
+    optionAll.textContent = 'All categories';
+    categorySelect.appendChild(optionAll);
+
+    for (const [, label] of unique) {
+      const option = document.createElement('option');
+      option.value = label;
+      option.textContent = label;
+      categorySelect.appendChild(option);
+    }
+
+    categorySelect.disabled = false;
+
+    const prevNormalized = normalizeCategoryValue(previousValue);
+    if (prevNormalized && unique.has(prevNormalized)) {
+      const restoredLabel = unique.get(prevNormalized);
+      categorySelect.value = restoredLabel;
+      const matches = sheetRows.filter(row => normalizeCategoryValue(row[categoryKeyName]) === prevNormalized);
+      renderCategoryItems(matches, restoredLabel);
+    } else {
+      categorySelect.value = '';
+      resetCategoryResults();
+    }
+  }
+
+  // Extract a Google Drive file ID from multiple URL shapes
+  function getDriveId(url = "") {
+    const s = String(url);
+    let m =
+      s.match(/[?&]id=([A-Za-z0-9_-]+)/) ||                // ...open?id=FILE_ID
+      s.match(/\/file\/d\/([A-Za-z0-9_-]+)/) ||            // .../file/d/FILE_ID/...
+      s.match(/\/uc\?export=(?:download|view)&id=([A-Za-z0-9_-]+)/); // .../uc?export=...&id=FILE_ID
+    return m ? m[1] : null;
+  }
+
+  function driveEmbedHTML(rawUrl) {
+    const id = getDriveId(rawUrl);
+    if (!id) {
+      // not a Drive link – just try to render as a normal image
+      return {
+        html: `<img id="itemPhoto" src="${rawUrl}" alt="Item photo">`,
+        id: null
+      };
+    }
+    // 1) try direct image; 2) if it fails, we’ll swap to preview iframe
+    const imgSrc = `https://drive.google.com/uc?export=view&id=${id}`;
+    const iframeSrc = `https://drive.google.com/file/d/${id}/preview`;
+    return {
+      html: `<img id="itemPhoto" src="${imgSrc}" alt="Item photo">`,
+      id,
+      iframeSrc
+    };
+  }
+  function readInventoryCache() {
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.rows)) return null;
+      const timestamp = Number(parsed.timestamp) || 0;
+      return {
+        rows: parsed.rows,
+        timestamp,
+        fresh: timestamp ? (Date.now() - timestamp) < CACHE_TTL : false
+      };
+    } catch (err) {
+      console.warn('Inventory cache parse failed:', err);
+      return null;
+    }
+  }
+
+  function writeInventoryCache(rows) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ rows, timestamp: Date.now() }));
+    } catch (err) {
+      console.warn('Inventory cache write failed:', err);
+    }
+  }
+
+  function processSheetData(rows = []) {
+    sheetRows = rows.map(normalizeRowKeys);
+    skuIndex.clear();
+    const sample = sheetRows[0] || {};
+    // Find the actual key used for sku (case/space safe)
+    skuKeyName = Object.keys(sample).find(k => k.trim().toLowerCase() === "sku") || "sku";
+    for (const r of sheetRows) {
+      const raw = r[skuKeyName];
+      const key = normalizeSku(raw);
+      if (key) skuIndex.set(key, r);
+    }
+    console.log(`Loaded ${sheetRows.length} rows. Indexed ${skuIndex.size} SKUs.`);
+    populateCategoryOptions();
+    if (searchInput && searchInput.value.trim().length >= 2) {
+      handleSearch(searchInput.value);
+    } else {
+      clearSearchResults();
+    }
+    renderScanHistory();
+  }
+
+ async function loadSheet() {
+  try {
+    const data = await fetchInventory();
+    processSheetData(data);
+  } catch (error) {
+    showToast('Authentication required', 'error');
+    // Redirect to login or show auth overlay
+  }
+}
+
+  function readScanHistory() {
+    try {
+      const raw = localStorage.getItem(SCAN_HISTORY_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (err) {
+      console.warn('Scan history parse failed:', err);
+      return [];
+    }
+  }
+
+  function persistScanHistory(entries) {
+    try {
+      localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(entries));
+    } catch (err) {
+      console.warn('Scan history write failed:', err);
+    }
+  }
+
+  function addToScanHistory(sku, itemName) {
+    const safeSku = String(sku ?? '').trim();
+    if (!safeSku) return;
+    const history = readScanHistory().filter(entry => entry?.sku !== safeSku);
+    history.unshift({
+      sku: safeSku,
+      itemName: String(itemName ?? ''),
+      timestamp: new Date().toISOString()
+    });
+    persistScanHistory(history.slice(0, MAX_HISTORY));
+    renderScanHistory();
+  }
+
+  function renderScanHistory() {
+    if (!historyCard || !historyList) return;
+    const history = readScanHistory();
+    historyList.innerHTML = '';
+    if (!history.length) {
+      historyCard.hidden = true;
+      return;
+    }
+    historyCard.hidden = false;
+    history.slice(0, HISTORY_DISPLAY_LIMIT).forEach(entry => {
+      const li = document.createElement('li');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'history-item';
+
+      const title = document.createElement('span');
+      title.className = 'history-item-primary';
+      title.textContent = entry.itemName || `SKU ${entry.sku}`;
+
+      const meta = document.createElement('span');
+      meta.className = 'history-item-meta';
+      let timestampText = '';
+      if (entry.timestamp) {
+        const date = new Date(entry.timestamp);
+        if (!Number.isNaN(date.valueOf())) {
+          timestampText = date.toLocaleString();
+        }
+      }
+      const metaParts = [entry.sku, timestampText].filter(Boolean);
+      meta.textContent = metaParts.join(' • ');
+
+      button.appendChild(title);
+      if (metaParts.length) button.appendChild(meta);
+      button.addEventListener('click', () => {
+        if (!sheetRows.length) {
+          showToast('Inventory still loading…', 'info');
+          return;
+        }
+        const row = skuIndex.get(normalizeSku(entry.sku));
+        if (row) {
+          renderItem(row);
+        } else {
+          showToast('Item not found in current inventory cache.', 'error');
+        }
+      });
+
+      li.appendChild(button);
+      historyList.appendChild(li);
+    });
+  }
+
+  function clearSearchResults() {
+    if (!searchResultsEl) return;
+    searchResultsEl.hidden = true;
+    searchResultsEl.innerHTML = '';
+  }
+
+  function displaySearchResults(results, query) {
+    if (!searchResultsEl) return;
+    searchResultsEl.innerHTML = '';
+    const limited = results.slice(0, 12);
+    if (!limited.length) {
+      const empty = document.createElement('p');
+      empty.className = 'search-empty';
+      empty.textContent = `No matches for “${query}”.`;
+      searchResultsEl.appendChild(empty);
+    } else {
+      limited.forEach(row => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'search-result';
+        const title = document.createElement('span');
+        title.className = 'search-result-title';
+        const skuValue = row[skuKeyName] ?? row['sku'] ?? '';
+        title.textContent = row['name'] || skuValue || 'Unnamed item';
+        const meta = document.createElement('span');
+        meta.className = 'search-result-meta';
+        const description = row['description'] || '';
+        const metaParts = [skuValue, description].filter(Boolean);
+        meta.textContent = metaParts.join(' • ');
+        button.appendChild(title);
+        if (metaParts.length) button.appendChild(meta);
+        button.addEventListener('click', () => {
+          renderItem(row);
+          addToScanHistory(skuValue, row['name'] || '');
+          clearSearchResults();
+          if (searchInput) searchInput.value = '';
+        });
+        searchResultsEl.appendChild(button);
+      });
+    }
+    searchResultsEl.hidden = false;
+  }
+
+  let searchLoadingNotified = false;
+
+  function handleSearch(rawValue) {
+    const query = String(rawValue ?? '').toLowerCase().trim();
+    if (!query) {
+      clearSearchResults();
+      return;
+    }
+    if (query.length < 2) {
+      clearSearchResults();
+      return;
+    }
+    if (!sheetRows.length) {
+      if (!searchLoadingNotified) {
+        showToast('Inventory still loading…', 'info');
+        searchLoadingNotified = true;
+      }
+      return;
+    }
+    searchLoadingNotified = false;
+    const lowerQuery = query.toLowerCase();
+    const results = sheetRows.filter(row => {
+      return Object.values(row).some(value => {
+        return String(value ?? '').toLowerCase().includes(lowerQuery);
+      });
+    });
+    displaySearchResults(results, rawValue);
+  }
+
+  if (searchInput) {
+    const onSearchInput = debounce((value) => handleSearch(value), 300);
+    searchInput.addEventListener('input', (event) => {
+      onSearchInput(event.target.value);
+    });
+  }
+
+  if (categorySelect) {
+    categorySelect.addEventListener('change', (event) => {
+      const selectedValue = String(event.target.value ?? '').trim();
+      if (!selectedValue) {
+        resetCategoryResults();
+        return;
+      }
+
+      if (!sheetRows.length) {
+        showToast('Inventory still loading…', 'info');
+        event.target.value = '';
+        resetCategoryResults();
+        return;
+      }
+
+      if (!categoryKeyName) {
+        showToast('Category column not available in the sheet.', 'error');
+        event.target.value = '';
+        resetCategoryResults();
+        return;
+      }
+
+      const normalized = normalizeCategoryValue(selectedValue);
+      const matches = sheetRows.filter(row => normalizeCategoryValue(row[categoryKeyName]) === normalized);
+      renderCategoryItems(matches, selectedValue);
+    });
+  }
+
+  clearHistoryBtn?.addEventListener('click', () => {
+    localStorage.removeItem(SCAN_HISTORY_KEY);
+    renderScanHistory();
+    showToast('Scan history cleared', 'info');
+  });
+
+  renderScanHistory();
+  function renderItem(row) {
+    lastRenderedItem = row;
+    const sku = row[skuKeyName] ?? row["sku"] ?? "";
+    const name = row["name"] ?? "";
+    const weight = row["weight"] ?? "";
+    const karat = row["karat"] ?? row["carat"] ?? "";
+    const description = row["description"] ?? "";
+    const timestamp = row["timestamp"] ?? row["Timestamp"] ?? "";
+    const fees = row["fees"] ?? "";
+
+    // Availability & sale detail columns coming from Inventory (joined from edits)
+    const availability = String(row["availability"] ?? "Yes").trim();
+    const soldByVal    = row["sold by"] ?? "";
+    const soldPriceVal = row["sold price"] ?? "";
+    const notesVal     = row["notes"] ?? "";
+    const isSold = /^no|sold$/i.test(availability); // No = sold/unavailable
+
+    const photoRaw = row["photo or video"] ?? row["photo"] ?? row["image"] ?? "";
+    const media = driveEmbedHTML(photoRaw);
+
+    const priceInfo = computeItemPrice(weight, karat, fees);
+    const activePrice = getActiveGoldPrice();
+    const sourceLabel = isManualGoldActive() ? "Manual" : "Live";
+    const timestampLabel = getGoldTimestampLabel();
+
+    const priceBlock = priceInfo
+      ? `<div class="item-card-price">
+         <strong>Estimated Price:</strong> ${priceInfo.total.toFixed(2)}
+         <div class="muted">
+           Per-gram: ${priceInfo.perGram.toFixed(2)} • ${sourceLabel} XAU: ${activePrice && Number.isFinite(activePrice) ? activePrice.toFixed(2) : "—"}
+           ${timestampLabel ? ` • ${timestampLabel}` : ""}
+         </div>
+       </div>`
+      : "";
+
+    const mediaSection = media.html ? `<div class="item-card-media">${media.html}</div>` : "";
+    const mediaLink = !media.html && photoRaw
+      ? `<a class="item-card-link" href="${photoRaw}" target="_blank" rel="noopener">Open photo/video</a>`
+      : "";
+
+    // Build “Sell” button (hide if already sold)
+    const sellBtnHTML = !isSold
+      ? `<button id="sellBtn" type="button" style="margin-top:10px">Sell this item</button>`
+      : `<span class="chip">Sold</span>`;
+
+    if (itemPlaceholder) itemPlaceholder.style.display = "none";
+    itemCard.style.display = "grid";
+    itemCard.innerHTML = `
+    <div class="item-card-grid">
+      <div class="item-card-copy">
+        ${sku ? `<span class="item-card-chip">SKU ${sku}</span>` : ""}
+        <h3>${name || "Item"}</h3>
+
+        <div class="item-card-meta">
+          ${timestamp ? `<div><strong>Timestamp:</strong> ${timestamp}</div>` : ""}
+          ${weight ? `<div><strong>Weight:</strong> ${weight} g</div>` : ""}
+          ${karat ? `<div><strong>Karat:</strong> ${karat}</div>` : ""}
+          ${fees ? `<div><strong>Fees:</strong> ${fees}</div>` : ""}
+
+          <div><strong>Status:</strong> ${isSold ? "Sold" : "Available"}</div>
+          ${isSold && soldByVal    ? `<div><strong>Sold by:</strong> ${soldByVal}</div>` : ""}
+          ${isSold && soldPriceVal ? `<div><strong>Sold price:</strong> ${soldPriceVal}</div>` : ""}
+          ${isSold && notesVal     ? `<div><strong>Notes:</strong> ${notesVal}</div>` : ""}
+        </div>
+
+        ${description ? `<div class="item-card-description">${description}</div>` : ""}
+        ${priceBlock}
+        ${sellBtnHTML}
+        ${mediaLink}
+      </div>
+      ${mediaSection}
+    </div>
+  `;
+
+    focusItemCard();
+
+    // If the <img> fails (e.g., it’s a video), swap to Drive preview iframe
+    const imgEl = document.getElementById('itemPhoto');
+    if (imgEl && media.id && media.iframeSrc) {
+      imgEl.onerror = () => {
+        const iframe = document.createElement('iframe');
+        iframe.src = media.iframeSrc;
+        iframe.allow = 'autoplay; clipboard-write';
+        iframe.style.width = '320px';
+        iframe.style.height = '240px';
+        iframe.style.border = '0';
+        iframe.style.borderRadius = '10px';
+        iframe.style.boxShadow = '0 2px 8px rgba(0,0,0,.15)';
+        iframe.style.marginTop = '8px';
+        imgEl.replaceWith(iframe);
+      };
+    }
+
+    // Wire up Sell button (posts to Apps Script, updates edits, reloads Inventory)
+    document.getElementById('sellBtn')?.addEventListener('click', async () => {
+      const employee = prompt("Employee name:");
+      if (!employee) return;
+      const price = prompt("Sold price:");
+      if (price === null) return;
+      const notes = prompt("Notes (optional):") || "";
+
+      try {
+        const result = await recordSale({
+          sku: String(sku),
+          availability: "No",
+          employee,
+          price,
+          notes
+        });
+
+        console.log("Sale API reply:", result);
+
+        if (result?.success || result?.ok) {
+          alert("Sale recorded.");
+          await loadSheet(); // refresh Inventory JSON
+          const latest = skuIndex.get(normalizeSku(String(sku)));
+          if (latest) renderItem(latest);
+        } else if (result?.error) {
+          alert(result.error);
+        } else {
+          alert("Could not record sale.");
+        }
+      } catch (e) {
+        alert("Network error.");
+      }
+    });
+  }
+  loadSheet();
+
+  // ========= ORIGINAL SCANNER CODE (unchanged except handleDetected) =========
+  let currentStream = null;
+  let currentDeviceId = null;
+  let devices = [];
+  let zxingReader = null;
+  let zxingStopFn = null;
+  let lastValue = null;
+  let engine = 'none';
+  let nativeLoopAbort = null;  // abort controller for native loop
+  let failoverTimer = null;
+  let audioCtx = null;
+
+  const AudioContextCtor = window.AudioContext || window.webkitAudioContext || null;
+  const PREFERRED_CAMERA_KEY = 'preferredCameraId';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.type = 'button';
+  retryBtn.textContent = 'Retry';
+  retryBtn.style.marginLeft = '8px';
+
+  function rememberPreferredCamera(id) { if (!id) return; try { localStorage.setItem(PREFERRED_CAMERA_KEY, id); } catch {} }
+  function readPreferredCamera() { try { return localStorage.getItem(PREFERRED_CAMERA_KEY); } catch { return null; } }
+  function toggleRetry(show) { if (show) { if (!supportEl.contains(retryBtn)) supportEl.appendChild(retryBtn); retryBtn.hidden = false; retryBtn.disabled = false; } else { retryBtn.hidden = true; if (retryBtn.parentElement === supportEl) supportEl.removeChild(retryBtn); } }
+  function setSupportMessage(message, { html = false, retry = false } = {}) { if (html) supportEl.innerHTML = message; else supportEl.textContent = message; toggleRetry(retry); }
+  function showPermissionHint() {
+    const ua = navigator.userAgent || '';
+    const hints = [
+      'Tap the address bar lock icon and allow camera access, then press <strong>Retry</strong>.'
+    ];
+
+    if (/Android/i.test(ua)) {
+      hints.push('If you do not see a prompt, open <strong>Settings → Apps → Permissions → Camera</strong> and make sure your browser is allowed.');
+      if (/(MIUI|XiaoMi|Redmi)/i.test(ua)) {
+        hints.push('On Xiaomi/MIUI devices, also open the <strong>Security</strong> app → <strong>Privacy protection → Permission manager → Camera</strong> and enable access for the browser.');
+      }
+    } else if (/(iPhone|iPad|iPod)/i.test(ua)) {
+      hints.push('On iOS, go to <strong>Settings → Safari → Camera</strong> (or the specific browser in Settings) and set it to <strong>Allow</strong>.');
+    }
+
+    const message = `
+      <div class="permission-hint">
+        <strong>Camera permission needed.</strong>
+        <ul>${hints.map(hint => `<li>${hint}</li>`).join('')}</ul>
+      </div>
+    `;
+
+    setSupportMessage(message, { html: true, retry: true });
+  }
+
+  resultEl.addEventListener('animationend', () => resultEl.classList.remove('flash'));
+
+  const vibe = () => (navigator.vibrate && navigator.vibrate(60));
+  const hasBarcodeDetector = 'BarcodeDetector' in window;
+
+  function setEngine(name) { engine = name; engineChip.textContent = 'Engine: ' + name; }
+  function setButtonsReady(ready) {
+    startBtn.disabled = !ready;
+    cameraSelect.disabled = !ready || !devices.length;
+  }
+  function showError(msg) {
+    resultEl.innerHTML = `<span class="err">${sanitizeInput(msg)}</span>`;
+  }
+
+  function focusItemCard() {
+    if (!itemCard) return;
+    if (!itemCard.hasAttribute('tabindex')) {
+      itemCard.setAttribute('tabindex', '-1');
+    }
+    requestAnimationFrame(() => {
+      itemCard.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+      try {
+        itemCard.focus({ preventScroll: true });
+      } catch (err) {
+        try { itemCard.focus(); } catch (_) {}
+      }
+    });
+  }
+
+  function ensureAudioCtx() { if (audioCtx || !AudioContextCtor) return; try { audioCtx = new AudioContextCtor(); } catch (e) { audioCtx = null; } }
+  async function playBeep() {
+    if (!AudioContextCtor) return;
+    ensureAudioCtx();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') {
+      try { await audioCtx.resume(); }
+      catch { return; }
+    }
+
+    const duration = 0.25;
+    const t = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1046.5, t); // bright C6 tone
+
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + duration);
+
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + duration + 0.05);
+  }
+  function flashResult() { resultEl.classList.remove('flash'); void resultEl.offsetWidth; resultEl.classList.add('flash'); }
+
+  // *** replaced to include Google Sheet lookup ***
+  function handleDetected(text, format) {
+    if (!text || text === lastValue) return;
+    lastValue = text;
+    vibe(); playBeep(); flashResult();
+
+    // Show raw scan line for debugging
+    resultEl.textContent = `Value: ${text}  |  Format: ${format || 'unknown'}`;
+
+    // Lookup row by SKU
+    const inputSku = String(text ?? "").trim();
+    const sku = normalizeSku(inputSku);
+    let row = skuIndex.get(sku);
+    if (!row) {
+      // Extra fallback: try linear search using the actual sku column
+      const match = sheetRows.find(r => normalizeSku(r[skuKeyName]) === sku);
+      if (match) {
+        row = match;
+        skuIndex.set(sku, row);
+      }
+    }
+    if (row) {
+      renderItem(row);
+      addToScanHistory(row[skuKeyName] ?? inputSku, row['name'] ?? '');
+    } else {
+      if (itemPlaceholder) itemPlaceholder.style.display = "none";
+      itemCard.style.display = "block";
+      const safeSku = sanitizeInput(inputSku);
+      itemCard.innerHTML = `<span class="err">No item found for SKU ${safeSku}</span>`;
+      if (!sheetRows.length) {
+        showToast('Inventory still loading…', 'info');
+      } else {
+        showToast(`No item found for SKU ${inputSku}`, 'error');
+      }
+      focusItemCard();
+    }
+  }
+
+  manualForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const raw = manualInput?.value ?? '';
+    let sku;
+    try {
+      sku = validateSKU(raw);
+    } catch (err) {
+      const message = err?.message || 'Invalid SKU';
+      showError(message);
+      showToast(message, 'error');
+      if (manualInput) {
+        try {
+          manualInput.focus({ preventScroll: true });
+        } catch (err) {
+          manualInput.focus();
+        }
+        manualInput.select();
+      }
+      return;
+    }
+    lastValue = null;
+    handleDetected(sku, 'manual');
+    if (manualInput) {
+      try {
+        manualInput.focus({ preventScroll: true });
+      } catch (err) {
+        manualInput.focus();
+      }
+      manualInput.select();
+    }
+  });
+
+  goldPriceForm?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const raw = String(goldPriceInput?.value ?? '').trim();
+    const value = Number(raw.replace(',', '.'));
+    if (!Number.isFinite(value) || value <= 0) {
+      showToast('Enter a valid gold price.', 'error');
+      goldPriceInput?.focus();
+      goldPriceInput?.select?.();
+      return;
+    }
+    setManualGoldPrice(value);
+    if (goldPriceInput) {
+      goldPriceInput.value = '';
+    }
+  });
+
+  goldSuggestionButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const delta = Number(button.dataset.goldSuggestion || '0');
+      if (!Number.isFinite(delta) || delta <= 0) return;
+      const base = Number.isFinite(goldPrice)
+        ? goldPrice
+        : Number.isFinite(manualGoldPrice)
+          ? manualGoldPrice
+          : NaN;
+      if (!Number.isFinite(base) || base <= 0) {
+        showToast('Gold price not available yet.', 'error');
+        return;
+      }
+      const newValue = base + delta;
+      const baseLabel = Number.isFinite(goldPrice) ? 'live' : 'manual';
+      setManualGoldPrice(newValue, {
+        toastMessage: `Applied ${baseLabel} price (${base.toFixed(2)}) + ${delta.toFixed(2)} = ${newValue.toFixed(2)}`,
+      });
+      if (goldPriceInput) {
+        goldPriceInput.value = '';
+      }
+    });
+  });
+
+  goldPriceClear?.addEventListener('click', () => {
+    const wasManual = isManualGoldActive();
+    manualGoldPrice = null;
+    manualGoldUpdatedAt = null;
+    updateGoldPriceStatus();
+    if (wasManual) {
+      showToast('Reverted to live gold price.', 'info');
+      if (lastRenderedItem) {
+        renderItem(lastRenderedItem);
+      }
+    }
+  });
+
+  // ----- Wait for ZXing (fallback) to load
+  function waitForZXing() {
+    return new Promise((resolve, reject) => {
+      if (window.ZXingBrowser) return resolve();
+      const s = document.getElementById('zxing-script');
+      if (!s) return reject(new Error('ZXing script tag not found'));
+      if (s.dataset.ready === '1') return resolve();
+      s.addEventListener('load', () => { s.dataset.ready = '1'; resolve(); });
+      s.addEventListener('error', () => reject(new Error('Failed to load ZXing')));
+    });
+  }
+
+  async function ensureHTTPS() {
+    if (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1') return true;
+    showError('This page must be served over HTTPS (or localhost) for camera access. Tip: reload with https:// or move this page to a secure host.');
+    return false;
+  }
+
+  // ----- Camera list
+  function prepareForPermissionRequest() {
+    startBtn.disabled = false;
+    cameraSelect.disabled = true;
+    switchBtn.disabled = true;
+  }
+
+  async function listCameras() {
+    try {
+      const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      tmp.getTracks().forEach(t => t.stop());
+    } catch (e) {
+      if (e?.name !== 'NotAllowedError' && e?.name !== 'SecurityError') {
+        console.warn('Prefetch camera request failed:', e);
+      }
+    }
+
+    try {
+      const all = await navigator.mediaDevices.enumerateDevices();
+      devices = all.filter(d => d.kind === 'videoinput');
+    } catch (e) {
+      devices = [];
+      if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') {
+        prepareForPermissionRequest();
+        setSupportMessage('Tap Start and allow camera access to begin scanning.', { html: false });
+        toggleRetry(false);
+        return 0;
+      }
+      setButtonsReady(false);
+      showPermissionHint();
+      throw e;
+    }
+
+    cameraSelect.innerHTML = '';
+    devices.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      opt.textContent = d.label || (i === 0 ? 'Back Camera' : `Camera ${i+1}`);
+      cameraSelect.appendChild(opt);
+    });
+
+    switchBtn.disabled = devices.length < 2;
+    setButtonsReady(devices.length > 0);
+
+    let targetId = null;
+    if (currentDeviceId && devices.some(d => d.deviceId === currentDeviceId)) targetId = currentDeviceId;
+    else {
+      const preferred = readPreferredCamera();
+      if (preferred && devices.some(d => d.deviceId === preferred)) targetId = preferred;
+    }
+    if (!targetId && devices.length) targetId = devices[0].deviceId;
+
+    if (targetId) { cameraSelect.value = targetId; currentDeviceId = targetId; rememberPreferredCamera(currentDeviceId); }
+    else currentDeviceId = null;
+
+    toggleRetry(devices.length === 0);
+    return devices.length;
+  }
+
+  async function openStream(deviceId) {
+    const constraints = {
+      audio: false,
+      video: deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    };
+    return await navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  function stopStream() { if (currentStream) { currentStream.getTracks().forEach(t => t.stop()); currentStream = null; } }
+  function stopAll() {
+    if (nativeLoopAbort) { nativeLoopAbort.aborted = true; nativeLoopAbort = null; }
+    if (zxingStopFn) { try { zxingStopFn(); } catch {} zxingStopFn = null; }
+    stopStream(); clearTimeout(failoverTimer);
+    stopBtn.disabled = true; startBtn.disabled = false; switchBtn.disabled = devices.length < 2; torchBtn.disabled = true;
+    setEngine('stopped'); setSupportMessage('Stopped.');
+  }
+  async function enableTorchIfSupported() {
+    torchBtn.disabled = true;
+    try {
+      const track = currentStream?.getVideoTracks?.()[0];
+      const caps = track?.getCapabilities?.();
+      if (caps && 'torch' in caps) {
+        torchBtn.disabled = false;
+        let torchOn = false;
+        torchBtn.onclick = async () => {
+          torchOn = !torchOn;
+          try {
+            await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+            torchBtn.textContent = torchOn ? 'Turn torch off' : 'Toggle torch';
+          } catch {}
+        };
+      }
+    } catch {}
+  }
+
+  // ----- Native detector loop
+  async function startNative() {
+    let formats = ['code_128','ean_13','ean_8','upc_a','upc_e','code_39','itf','qr_code'];
+    try {
+      if (window.BarcodeDetector.getSupportedFormats) {
+        const supported = await window.BarcodeDetector.getSupportedFormats();
+        formats = formats.filter(f => supported.includes(f));
+      }
+    } catch {}
+    const detector = new window.BarcodeDetector({ formats });
+    setEngine('native');
+
+    currentStream = await openStream(currentDeviceId);
+    video.srcObject = currentStream; await video.play();
+    enableTorchIfSupported();
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const processFrame = async () => {
+      const w = video.videoWidth || 0, h = video.videoHeight || 0;
+      if (!w || !h) return;
+      const cropW = Math.floor(w * 0.9), cropH = Math.floor(h * 0.4);
+      const sx = Math.floor((w - cropW) / 2), sy = Math.floor((h - cropH) / 2);
+      if (canvas.width !== cropW || canvas.height !== cropH) { canvas.width = cropW; canvas.height = cropH; }
+      ctx.drawImage(video, sx, sy, cropW, cropH, 0, 0, canvas.width, canvas.height);
+      try {
+        const codes = await detector.detect(canvas);
+        if (codes && codes.length) {
+          const b = codes[0];
+          handleDetected(b.rawValue || '', b.format);
+        }
+      } catch {}
+    };
+
+    nativeLoopAbort = { aborted: false };
+    const useVFC = typeof video.requestVideoFrameCallback === 'function';
+    const schedule = () => {
+      if (nativeLoopAbort?.aborted) return;
+      const run = () => { if (nativeLoopAbort?.aborted) return; processFrame().catch(()=>{}).finally(schedule); };
+      if (useVFC) video.requestVideoFrameCallback((_n,_m)=>run()); else requestAnimationFrame(()=>run());
+    };
+    schedule();
+  }
+
+  // ----- ZXing fallback
+  async function startZXing() {
+    await waitForZXing();
+    setEngine('zxing');
+    const { BrowserMultiFormatReader } = ZXingBrowser;
+    if (!zxingReader) zxingReader = new BrowserMultiFormatReader(undefined, 350);
+    const constraints = {
+      audio: false,
+      video: currentDeviceId
+        ? { deviceId: { exact: currentDeviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        : { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+    };
+    zxingStopFn = await zxingReader.decodeFromConstraints(constraints, video, (res) => {
+      if (res) {
+        const text = res.getText();
+        const fmt = (res.getBarcodeFormat && res.getBarcodeFormat()) || 'unknown';
+        handleDetected(text, fmt);
+      }
+    });
+    currentStream = video.srcObject;
+    enableTorchIfSupported();
+  }
+
+  async function startSelected() {
+    lastValue = null;
+    resultEl.textContent = 'Scanning…';
+    startBtn.disabled = true; stopBtn.disabled = false;
+    stopAll();
+    try {
+      if ('BarcodeDetector' in window) {
+        await startNative();
+        setSupportMessage('<span class="ok">Native detector running…</span>', { html: true });
+        failoverTimer = setTimeout(async () => {
+          if (!lastValue) {
+            setSupportMessage('Switching to ZXing fallback…');
+            if (nativeLoopAbort) nativeLoopAbort.aborted = true;
+            stopStream();
+            try { await startZXing(); } catch (e) { showError(e.message || 'Failed to start ZXing.'); }
+          }
+        }, 6000);
+      } else {
+        await startZXing();
+        setSupportMessage('<span class="ok">ZXing running…</span>', { html: true });
+      }
+    } catch (e) {
+      if (e?.name === 'NotAllowedError' || e?.name === 'SecurityError') {
+        showPermissionHint();
+      } else {
+        showError(e?.message || 'Failed to start camera/decoder.');
+      }
+      startBtn.disabled = false; stopBtn.disabled = true;
+    }
+  }
+
+  retryBtn.addEventListener('click', async () => {
+    retryBtn.disabled = true;
+    setSupportMessage('Requesting camera access…');
+    try {
+      const count = await listCameras();
+      if (count > 0) {
+        setSupportMessage(('BarcodeDetector' in window)
+          ? 'Cameras found. Native + ZXing fallback ready.'
+          : 'Cameras found. ZXing ready.');
+      } else {
+        showPermissionHint();
+      }
+    } catch (e) {
+      showPermissionHint();
+    } finally { retryBtn.disabled = false; }
+  });
+
+  startBtn.addEventListener('click', async () => { ensureAudioCtx(); await startSelected(); });
+  stopBtn.addEventListener('click', stopAll);
+
+  switchBtn.addEventListener('click', async () => {
+    if (!devices.length) return;
+    const idx = devices.findIndex(d => d.deviceId === currentDeviceId);
+    const next = devices[(idx + 1) % devices.length];
+    currentDeviceId = next.deviceId; rememberPreferredCamera(currentDeviceId);
+    stopAll(); cameraSelect.value = next.deviceId; await startSelected();
+  });
+
+  cameraSelect.addEventListener('change', async () => {
+    currentDeviceId = cameraSelect.value || null; rememberPreferredCamera(currentDeviceId);
+    if (!currentStream) return; stopAll(); await startSelected();
+  });
+
+  (async () => {
+    if (!await ensureHTTPS()) return;
+    if (!navigator.mediaDevices?.getUserMedia) { setButtonsReady(false); showError('This browser does not support camera APIs.'); return; }
+    const [zxingResult, cameraResult] = await Promise.allSettled([ waitForZXing(), listCameras() ]);
+    if (zxingResult.status === 'rejected') console.warn('ZXing preload failed:', zxingResult.reason);
+    if (cameraResult.status === 'fulfilled') {
+      const count = cameraResult.value;
+      if (count > 0) setSupportMessage(('BarcodeDetector' in window) ? 'Cameras found. Native + ZXing fallback ready.' : 'Cameras found. ZXing ready.');
+      else showPermissionHint();
+    } else { setButtonsReady(true); showPermissionHint(); }
+  })();
+
+  window.addEventListener('pagehide', stopAll);
+})();
+</script>
+</body>
+</html>
