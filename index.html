@@ -687,7 +687,66 @@
   <script id="zxing-script" src="https://unpkg.com/@zxing/browser@latest"></script>
 </head>
 <body>
-  <div class="page">
+  <!-- Password Protection Overlay -->
+  <div id="authOverlay" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at 10% 0%, rgba(37, 150, 190, 0.95) 0%, rgba(37, 150, 190, 0.85) 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    font-family: 'Inter', sans-serif;
+  ">
+    <div style="
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+      border: 1px solid rgba(37, 150, 190, 0.3);
+    ">
+      <img src="assets/logo-website-test.jpg" alt="Veridian Jewelry" style="height: 60px; margin-bottom: 20px;">
+      <h2 style="font-family: 'Playfair Display', serif; color: #0f2f3a; margin-bottom: 10px;">Veridian Jewelry</h2>
+      <p style="color: #666; margin-bottom: 30px;">Enter passkey to access the inventory system</p>
+
+      <input type="password" id="passwordInput" placeholder="Enter passkey" style="
+        width: 100%;
+        padding: 15px;
+        border: 2px solid rgba(37, 150, 190, 0.3);
+        border-radius: 12px;
+        font-size: 16px;
+        margin-bottom: 20px;
+        text-align: center;
+        font-family: 'Inter', sans-serif;
+      ">
+
+      <button onclick="checkPassword()" style="
+        background: linear-gradient(135deg, #2596be, #1b6f8c);
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        font-family: 'Inter', sans-serif;
+      ">Access System</button>
+
+      <div id="errorMessage" style="color: #d84a63; margin-top: 15px; display: none;">
+        Incorrect passkey. Please try again.
+      </div>
+    </div>
+  </div>
+
+  <!-- Existing page content -->
+  <div class="page" style="display: none;" id="mainContent">
     <header>
       <img src="assets/logo-website-test.jpg" alt="Test Barcode Website logo" class="brand-logo" />
       <div class="badge-row">
@@ -833,6 +892,53 @@
   </div>
 
 <script>
+// Password Protection
+const CORRECT_PASSWORD = 'veridian2024';
+
+function checkPassword() {
+  const input = document.getElementById('passwordInput').value.trim();
+  const errorMessage = document.getElementById('errorMessage');
+  const authOverlay = document.getElementById('authOverlay');
+  const mainContent = document.getElementById('mainContent');
+
+  if (input === CORRECT_PASSWORD) {
+    authOverlay.style.display = 'none';
+    mainContent.style.display = 'flex';
+    errorMessage.style.display = 'none';
+    sessionStorage.setItem('authenticated', 'true');
+  } else {
+    errorMessage.style.display = 'block';
+    const passwordField = document.getElementById('passwordInput');
+    passwordField.value = '';
+    passwordField.focus();
+  }
+}
+
+function checkAuth() {
+  const isAuthed = sessionStorage.getItem('authenticated') === 'true';
+  const authOverlay = document.getElementById('authOverlay');
+  const mainContent = document.getElementById('mainContent');
+
+  if (isAuthed) {
+    authOverlay.style.display = 'none';
+    mainContent.style.display = 'flex';
+  } else {
+    authOverlay.style.display = 'flex';
+    mainContent.style.display = 'none';
+  }
+}
+
+document.getElementById('passwordInput')?.addEventListener('keypress', function (event) {
+  if (event.key === 'Enter') {
+    checkPassword();
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+  checkAuth();
+  document.getElementById('passwordInput')?.focus();
+});
+
 (function () {
   const video = document.getElementById('preview');
   const cameraSelect = document.getElementById('cameraSelect');
