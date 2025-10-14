@@ -897,17 +897,45 @@
 
 // Replace the existing checkPassword function:
 async function checkPassword() {
-  const input = document.getElementById('passwordInput').value.trim();
-  const result = await login(input);
-  
-  if (result.success) {
-    // Hide auth overlay, show main content
-    authOverlay.style.display = 'none';
-    mainContent.style.display = 'flex';
-    // Load inventory
-    await loadSheet();
-  } else {
-    // Show error
+  const passwordInput = document.getElementById('passwordInput');
+  const authOverlay = document.getElementById('authOverlay');
+  const mainContent = document.getElementById('mainContent');
+  const errorMessage = document.getElementById('errorMessage');
+
+  if (!passwordInput || !authOverlay || !mainContent || !errorMessage) {
+    console.error('Authentication elements are missing from the page.');
+    return;
+  }
+
+  const input = passwordInput.value.trim();
+
+  if (!input) {
+    errorMessage.textContent = 'Please enter the admin password.';
+    errorMessage.style.display = 'block';
+    return;
+  }
+
+  errorMessage.style.display = 'none';
+
+  try {
+    const result = await login(input);
+
+    if (result?.success) {
+      sessionStorage.setItem('authenticated', 'true');
+      passwordInput.value = '';
+      authOverlay.style.display = 'none';
+      mainContent.style.display = 'flex';
+      await loadSheet();
+    } else {
+      sessionStorage.removeItem('authenticated');
+      errorMessage.textContent = result?.error || 'Invalid password. Please try again.';
+      errorMessage.style.display = 'block';
+      passwordInput.focus();
+    }
+  } catch (err) {
+    sessionStorage.removeItem('authenticated');
+    console.error('Login failed:', err);
+    errorMessage.textContent = 'Network error. Please try again.';
     errorMessage.style.display = 'block';
   }
 }
@@ -1336,13 +1364,14 @@ async function login(password) {
   const response = await fetch('/api/auth', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify({ password })
   });
   return await response.json();
 }
 
 async function fetchInventory() {
-  const response = await fetch('/api/inventory');
+  const response = await fetch('/api/inventory', { credentials: 'same-origin' });
   if (!response.ok) throw new Error('Auth required');
   return await response.json();
 }
@@ -1351,6 +1380,7 @@ async function recordSale(saleData) {
   const response = await fetch('/api/sales', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
     body: JSON.stringify(saleData)
   });
   return await response.json();
@@ -1929,25 +1959,25 @@ async function recordSale(saleData) {
       const notes = prompt("Notes (optional):") || "";
 
       try {
-        const r = await fetch(SELL_API, {
-          method: "POST",
-          headers: { "Content-Type": "text/plain;charset=utf-8" }, // simple POST, no preflight
-          body: JSON.stringify({
-            token: SELL_TOKEN,
-            sku: String(sku),
-            availability: "No",
-            employee, price, notes
-          })
+        const result = await recordSale({
+          sku: String(sku),
+          availability: "No",
+          employee,
+          price,
+          notes
         });
-        const ok = await r.json().catch(()=> ({}));
-        console.log("SELL reply:", ok);
-        if (ok?.ok) {
+
+        console.log("Sale API reply:", result);
+
+        if (result?.success || result?.ok) {
           alert("Sale recorded.");
           await loadSheet(); // refresh Inventory JSON
           const latest = skuIndex.get(normalizeSku(String(sku)));
           if (latest) renderItem(latest);
+        } else if (result?.error) {
+          alert(result.error);
         } else {
-          alert(ok?.error || "Could not record sale.");
+          alert("Could not record sale.");
         }
       } catch (e) {
         alert("Network error.");
