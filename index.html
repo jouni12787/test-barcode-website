@@ -902,11 +902,6 @@ async function checkPassword() {
   const mainContent = document.getElementById('mainContent');
   const errorMessage = document.getElementById('errorMessage');
 
-  if (!passwordInput || !authOverlay || !mainContent || !errorMessage) {
-    console.error('Authentication elements are missing from the page.');
-    return;
-  }
-
   const input = passwordInput.value.trim();
 
   if (!input) {
@@ -917,26 +912,43 @@ async function checkPassword() {
 
   errorMessage.style.display = 'none';
 
+  const submitBtn = authOverlay.querySelector('button');
+  const originalText = submitBtn.textContent;
+  submitBtn.textContent = 'Checking...';
+  submitBtn.disabled = true;
+
   try {
     const result = await login(input);
+    console.log('Login result:', result);
 
     if (result?.success) {
       sessionStorage.setItem('authenticated', 'true');
       passwordInput.value = '';
       authOverlay.style.display = 'none';
       mainContent.style.display = 'flex';
-      await loadSheet();
+
+      try {
+        await loadSheet();
+        showToast('Login successful', 'success');
+      } catch (inventoryError) {
+        console.error('Inventory load failed:', inventoryError);
+        showToast('Logged in, but inventory load failed', 'error');
+      }
     } else {
       sessionStorage.removeItem('authenticated');
       errorMessage.textContent = result?.error || 'Invalid password. Please try again.';
       errorMessage.style.display = 'block';
       passwordInput.focus();
+      passwordInput.select();
     }
   } catch (err) {
+    console.error('Login process error:', err);
     sessionStorage.removeItem('authenticated');
-    console.error('Login failed:', err);
-    errorMessage.textContent = 'Network error. Please try again.';
+    errorMessage.textContent = 'Network error. Please check connection and try again.';
     errorMessage.style.display = 'block';
+  } finally {
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
   }
 }
 
@@ -1358,29 +1370,48 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
- // ✅ ADD THESE FUNCTIONS:
-
 async function login(password) {
-  const response = await fetch('/api/auth', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
-    body: JSON.stringify({ password })
-  });
-  return await response.json();
+  try {
+    console.log('Sending login request...');
+    const response = await fetch('/api/auth', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ password })
+    });
+
+    const result = await response.json();
+    console.log('Login response:', result);
+    return result;
+  } catch (error) {
+    console.error('Login fetch error:', error);
+    return { success: false, error: 'Network error' };
+  }
 }
 
 async function fetchInventory() {
-  const response = await fetch('/api/inventory', { credentials: 'same-origin' });
-  if (!response.ok) throw new Error('Auth required');
-  return await response.json();
+  try {
+    console.log('Fetching inventory...');
+    const response = await fetch('/api/inventory');
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log('Inventory data received');
+    return data;
+  } catch (error) {
+    console.error('Inventory fetch error:', error);
+    throw error;
+  }
 }
 
 async function recordSale(saleData) {
   const response = await fetch('/api/sales', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    credentials: 'same-origin',
     body: JSON.stringify(saleData)
   });
   return await response.json();
