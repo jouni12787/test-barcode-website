@@ -755,10 +755,10 @@
             type="number"
             id="manualInput"
             name="manualInput"
-            min="20000"
-            max="29999"
+            min="30001"
+            max="39999"
             inputmode="numeric"
-            placeholder="20000"
+            placeholder="30001"
             required
           />
           <button type="submit">Lookup</button>
@@ -937,8 +937,8 @@
       throw new Error('SKU must be 5 digits');
     }
     const num = Number.parseInt(skuStr, 10);
-    if (num < 20000 || num > 29999) {
-      throw new Error('SKU must be between 20000 and 29999');
+    if (num < 30001 || num > 39999) {
+      throw new Error('SKU must be between 30001 and 39999');
     }
     return skuStr;
   }
