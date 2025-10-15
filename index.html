@@ -128,7 +128,7 @@
     </form>
   </main>
   <script>
-    const PASSWORD = 'veridian'; // Update this value as needed.
+    // Check if already authenticated
     if (sessionStorage.getItem('authenticated') === 'true') {
       window.location.replace('app/index.html');
     }
@@ -143,25 +143,45 @@
       SUBMIT_BTN.textContent = state ? 'Checking…' : 'Enter Workspace';
     }
 
-    FORM.addEventListener('submit', (event) => {
+    FORM.addEventListener('submit', async (event) => {
       event.preventDefault();
-      const value = PASSWORD_FIELD.value.trim();
+      ERROR.classList.remove('visible');
       setLoading(true);
-      setTimeout(() => {
-        if (value === PASSWORD) {
+
+      try {
+        const response = await fetch('/api/auth', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            password: PASSWORD_FIELD.value.trim() 
+          })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.success) {
           sessionStorage.setItem('authenticated', 'true');
           window.location.href = 'app/index.html';
         } else {
           ERROR.classList.add('visible');
           PASSWORD_FIELD.value = '';
           PASSWORD_FIELD.focus();
-          setLoading(false);
         }
-      }, 200);
+      } catch (error) {
+        console.error('Login error:', error);
+        ERROR.textContent = 'Network error. Please check your connection and try again.';
+        ERROR.classList.add('visible');
+      } finally {
+        setLoading(false);
+      }
     });
 
     PASSWORD_FIELD.addEventListener('input', () => {
       ERROR.classList.remove('visible');
+      // Reset to default error message
+      ERROR.textContent = 'Incorrect password. Please try again.';
     });
   </script>
 </body>
