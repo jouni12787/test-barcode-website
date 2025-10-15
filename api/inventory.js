@@ -5,9 +5,7 @@ export default async function handler(req, res) {
     const bearerOk = (req.headers.authorization || '') === `Bearer ${process.env.AUTH_TOKEN}`;
     const cookieOk  = req.cookies?.auth === process.env.AUTH_TOKEN;
 
-    if (!bearerOk && !cookieOk) {
-      return res.status(401).json({ error: 'Invalid or missing token' });
-    }
+    if (!bearerOk && !cookieOk) return res.status(401).json({ error: 'Invalid or missing token' });
 
     const url = process.env.GOOGLE_SHEET_URL;
     if (!url) return res.status(500).json({ error: 'GOOGLE_SHEET_URL is not set' });
