@@ -42,6 +42,7 @@ export default async function handler(req, res) {
         'X-Token': process.env.SELL_API_TOKEN
       },
       body: JSON.stringify({
+        token: process.env.SELL_API_TOKEN,
         sku: String(sku).trim(),
         employee: String(employee).trim(),
         price: numPrice,
