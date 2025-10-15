@@ -1,45 +1,31 @@
-<script>
-  if (sessionStorage.getItem('authenticated') === 'true') {
-    window.location.replace('app/index.html');
+// pages/api/inventory.js  (or app/api/inventory/route.js adapted)
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const FORM = document.getElementById('loginForm');
-  const PASSWORD_FIELD = document.getElementById('password');
-  const ERROR = document.getElementById('error');
-  const SUBMIT_BTN = document.getElementById('submitBtn');
-
-  function setLoading(state) {
-    SUBMIT_BTN.disabled = state;
-    SUBMIT_BTN.textContent = state ? 'Checking…' : 'Enter Workspace';
-  }
-
-  FORM.addEventListener('submit', async (event) => {
-    event.preventDefault();
-    ERROR.classList.remove('visible');
-    setLoading(true);
-
-    try {
-      const res = await fetch('/api/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: PASSWORD_FIELD.value.trim() })
-      });
-
-      if (res.ok) {
-        sessionStorage.setItem('authenticated', 'true');
-        window.location.href = 'app/index.html';
-      } else {
-        ERROR.classList.add('visible'); // shows "Incorrect password..."
-        PASSWORD_FIELD.value = '';
-        PASSWORD_FIELD.focus();
-      }
-    } catch (e) {
-      ERROR.textContent = 'Server error. Please try again.';
-      ERROR.classList.add('visible');
-    } finally {
-      setLoading(false);
+  try {
+    // 1) Require bearer token that matches AUTH_TOKEN
+    const authHeader = req.headers.authorization || '';
+    const expected = `Bearer ${process.env.AUTH_TOKEN}`;
+    if (authHeader !== expected) {
+      return res.status(401).json({ error: 'Invalid or missing token' });
     }
-  });
 
-  PASSWORD_FIELD.addEventListener('input', () => ERROR.classList.remove('visible'));
-</script>
+    // 2) Fetch your inventory JSON (OpenSheet returns JSON)
+    const url = process.env.GOOGLE_SHEET_URL;
+    if (!url) throw new Error('GOOGLE_SHEET_URL is not set');
+
+    const sheetResponse = await fetch(url, { cache: 'no-store' });
+    if (!sheetResponse.ok) {
+      throw new Error(`Sheets fetch failed: ${sheetResponse.status} ${sheetResponse.statusText}`);
+    }
+
+    const data = await sheetResponse.json();
+    return res.status(200).json(data);
+  } catch (error) {
+    console.error('Inventory error:', error);
+    return res.status(500).json({ error: 'Failed to fetch inventory: ' + error.message });
+  }
+}
+
