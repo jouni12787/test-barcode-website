@@ -63,14 +63,21 @@ export default async function handler(req, res) {
         message: 'Password is required'
       });
     }
+if (password === expectedPassword) {
+  const token = process.env.AUTH_TOKEN || '';
+  const cookie = [
+    `auth=${encodeURIComponent(token)}`,
+    'Path=/', 'HttpOnly', 'SameSite=Lax', 'Secure', 'Max-Age=86400'
+  ].join('; ');
+  res.setHeader('Set-Cookie', cookie);
 
-    // Compare passwords securely (timing-safe comparison)
-    if (password === expectedPassword) {
-      return res.status(200).json({
-        success: true,
-        message: 'Authentication successful'
-      });
-    } else {
+  return res.status(200).json({
+    success: true,
+    message: 'Authentication successful'
+  });
+}
+
+ else {
       return res.status(401).json({ 
         success: false,
         message: 'Invalid password'
