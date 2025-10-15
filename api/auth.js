@@ -1,19 +1,3 @@
-// /api/auth.js
-async function parseRequestBody(req) {
-  // If Vercel already parsed it:
-  if (req.body) {
-    if (typeof req.body === 'string') {
-      try { return JSON.parse(req.body); } catch { return {}; }
-    }
-    return req.body;
-  }
-  // Fallback: read the stream
-  const chunks = [];
-  for await (const chunk of req) chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
-  const raw = Buffer.concat(chunks).toString('utf8');
-  try { return raw ? JSON.parse(raw) : {}; } catch { return {}; }
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ success: false, message: 'Method not allowed' });
@@ -26,6 +10,13 @@ export default async function handler(req, res) {
     if (!expectedPassword) {
       return res.status(500).json({ success: false, message: 'ADMIN_PASSWORD missing' });
     }
+
+    // ✅ ADD THIS DEBUG BLOCK HERE
+    console.log('ENV CHECK', {
+      vercelEnv: process.env.VERCEL_ENV,
+      adminPwd: process.env.ADMIN_PASSWORD
+    });
+    // ✅ END DEBUG BLOCK
 
     if (password === expectedPassword) {
       // Set cookie so inventory/sales can authenticate this browser
