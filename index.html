@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Veridian Jewelry • Secure Access</title>
+  <link rel="icon" type="image/jpeg" href="assets/logo-website-test.jpg">
+  <link rel="apple-touch-icon" href="assets/logo-website-test.jpg">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#2596be">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -42,9 +48,10 @@
       box-shadow: var(--shadow);
       text-align: center;
     }
-    img {
+    .brand-logo {
+      display: block;
       height: clamp(54px, 10vw, 72px);
-      justify-self: center;
+      margin: 0 auto;
       filter: drop-shadow(0 10px 24px rgba(37, 150, 190, 0.25));
     }
     h1 {
@@ -115,7 +122,7 @@
 </head>
 <body>
   <main>
-    <img src="assets/logo-website-test.jpg" alt="Veridian Jewelry logo">
+    <img class="brand-logo" src="./assets/logo-website-test.jpg" alt="Veridian Jewelry logo">
     <header>
       <h1>Secure Staff Access</h1>
       <p>Please enter the daily access password to continue.</p>
