@@ -371,6 +371,36 @@
       gap: 12px;
     }
 
+    .contact-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .contact-row strong {
+      color: var(--text);
+    }
+
+    .contact-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 12px 28px -18px rgba(37, 150, 190, 0.5);
+      transition: transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    .contact-action:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 32px -18px rgba(37, 150, 190, 0.55);
+    }
+
     .ok { color: #1a8f55; }
     .err { color: #d84a63; }
 
@@ -830,7 +860,10 @@
         <span class="chip">iOS & Android</span>
         <span class="chip">Code128, EAN/UPC, Code39, ITF, QR</span>
       </div>
-      <div class="muted">Need help staging a private showing? Contact our concierge team at <strong>ajouni178@gmail.com</strong>.</div>
+      <div class="contact-row">
+        <span>Need help staging a private showing? Contact our concierge team at <strong>ajouni178@gmail.com</strong>.</span>
+        <a class="contact-action" href="https://wa.me/393481651384" target="_blank" rel="noopener">WhatsApp us</a>
+      </div>
     </footer>
   </div>
 
